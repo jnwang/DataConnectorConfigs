@@ -1,101 +1,266 @@
-# Setting up the data connector config file
+# Data Collection From Web APIs
+
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-5-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-This README is intended for contributors and developers who want to build a configuration file. This readme will outline the process to build a configuration file for Yelp's phone number search API. 
+A curated list of example code to collect data from Web APIs using DataPrep.Connector.
 
-You can review the Yelp API documentation to determine the available endpoints [here](https://www.yelp.com/developers/documentation/v3/get_started). 
+## How to Contribute?
+You can contribute to this project in two way. Please see the [contributing guide](CONTRIBUTING.md).
+1. Add your example code on this page
+2. Add a new configuration file to this repo
 
-# Inspecting endpoints
+## Why Contribute?
+* Your contribution will benefit [~100K DataPrep users](https://github.com/sfu-db/dataprep).
+* Your contribution will be recoginized on [Contributors](#contributors-).
 
-“Endpoints are communication channels. When an API interacts with another system, they communicate with each other and allows you to match business data on the information you provide.”
+## Index
 
-Once you choose an endpoint, review its documentation. Make a note of the HTTP request method (e.g., GET, PUT, etc) and the specific source.  
+* [Business](#business)
+* [Finance](#finance)
+* [Geocoding](#geocoding)
+* [Lifestyle](#lifestyle)
+* [Music](#music)
+* [News](#news)
+* [Science](#science)
+* [Shopping](#shopping)
+* [Social](#social)
+* [Video](#video)
+* [Weather](#weather)
 
-In the parameter section, select the targets you want as a response for your app.
+### Business
 
-“A parameter is an option that can be passed with the endpoint to influence the response”.
-
-<img src=".assets/Yelp_search.png" style= "width: 500px; height:350px;"/>
-
-# Obtaining an access token
-Yelp requires each user to have an access token to make API requests on their behalf. An access token represents the authorization of a specific application to access particular parts of a user's data. Start [here](https://www.yelp.com/developers/documentation/v3/get_started) to generate the access token. (You will create an app, provide the required information about its use to generate the token.)
-
-<img src=".assets/Yelp_Authentication.png" style= "width: 600px; height:400px;"/>
-
-Now that you created your token, it’s time to create the config files. 
-
-# The config files
-The data connector requires two files to run, meta.json and table.json.
-
-## Create the meta.json file
-
-The meta.json file contains the key value of the table and its name in an array. It tells the connector how many tables are in the data source and which tables to access. The meta.json file needs to manually written.
-
-<img src=".assets/Yelp_meta.png" style= "width: 550px; height:90px;"/>
-
-## Create the businesses.json file
-
-<img src=".assets/Yelp_rnr.png" style= "width: 600px; height:450px;"/>
-
-The business file contains information needed to communicate with Yelp’s API. In this file, there is the request and response section. 
-
-## Top Level
-### Request:
-
-<img src=".assets/Yelp_request.png" style= "width: 500px; height:150px;"/>
-
-
-URL: "https://api.yelp.com/v3/businesses/search/phone"
-- Contains the URL path for the API
-
-method: "GET" 
-- GET is used to request data from a specified resource, For the Yelp's API request, leave it as GET.
-
-authorization: "Bearer"
-- Authorization to ensure that client requests access data securely. The Bearer allows requests to authenticate using an access key, such as a token. For Yelp's API request, leave it as Bearer.
-
-- Note: For other API’s, please read how they may authorize your application. Depending on the method, a different authorization may be required. 
-
-Params: {"phone": true}
-- Parameters, or Params, contain the requested criteria to the API. Before creating the config file, the parameters should be selected. Each parameter as a key-value pair where the name is the key and the value is Boolean. If you take a look at the Yelp Phone Search documentation, it shows that phone is a required parameter.
-  - A True value refers to the required parameter to query a request. 
-  - A False value refers to the optional parameter to query a request. 
-
-### Response:
-
-<img src=".assets/Yelp_response.png" style= "width: 600px; height:350px;"/>
-
-ctype: "application/json"
-- The Content-Type, or ctype, is used to indicate the media type of the resource. A Content-Type header tells the client what the content type of the returned information actually is. With data connector, the contect type is application/json. 
+#### [Yelp](./yelp) -- Collect Local Business Data
+<details>
+  <summary>What's the phone number of Capilano Suspension Bridge Park?</summary>
   
-tablePath: "$.businesses[*]"
-- When the response is received it delievers an array and under the array is the table content. With data connector and Yelp, the tablePath is $.businesses[*].
+  ```python
+  from dataprep.connector import connect
 
-schema: { }
-- After finding table content, it looks at schema.
+  # You can get ”yelp_access_token“ by following https://www.yelp.com/developers/documentation/v3/authentication
+  conn_yelp = connect("yelp", _auth={"access_token":yelp_access_token}, _concurrency = 5)
+
+  df = await conn_yelp.query("businesses", term = "Capilano Suspension Bridge Park", location = "Vancouver", _count = 1)
+
+  df[["name","display_phone"]]
+  ```
+ id | name  |display_phone
+ ---| ----- | ----
+ 0   |Capilano Suspension Bridge Park | +1 604-985-7474
+  </details>
+<details>
+  <summary>Which yoga store has the highest review count in Vancouver?</summary>
   
-id: {"target": "$.id", "type": "string"}
-- The schema will be read until all elements of the business array received. ID is at the root of the first row of the business array, and it will access the ID attribute. 
+  ```python
+  from dataprep.connector import connect
 
-- To build the schema, you would need to review the response section of the specific endpoint page.  
+  # You can get ”yelp_access_token“ by following https://www.yelp.com/developers/documentation/v3/authentication
+  conn_yelp = connect("yelp", _auth={"access_token":yelp_access_token}, _concurrency = 1)
 
-<img src=".assets/Yelp_build_schema.png" style= "width: 600px; height:400px;"/>
+   # Check all supported categories: https://www.yelp.ca/developers/documentation/v3/all_category_list
+  df = await conn_yelp.query("businesses", categories = "yoga", location = "Vancouver", sort_by = "review_count", _count = 1)
+  df[["name", "review_count"]]
+  ```
+ id | name  |review_count
+ ---| ----- | ----
+ 0   |YYOGA Downtown Flow   | 107
+  </details>  
+  
+<details>
+  <summary>How many Starbucks stores in Seattle and where are they?</summary>
+  
+  ```python
+  from dataprep.connector import connect
 
-The user selects the responses they are interested in and sets them up in the appropriate format. Take a look at the response section of the page. The target is the response name, and the type is the data format response generated. 
+  # You can get ”yelp_access_token“ by following https://www.yelp.com/developers/documentation/v3/authentication
+  conn_yelp = connect("yelp", _auth={"access_token":yelp_access_token}, _concurrency = 5)
+  df = await conn_yelp.query("businesses", term = "Starbucks", location = "Seattle", _count = 1000)
 
-<img src=".assets/Yelp_single_response.png" style= "width: 500px; height:50px;"/>
+  # Remove irrelevant data
+  df = df[(df['city'] == 'Seattle') & (df['name'] == 'Starbucks')]
+  df = df[['name', 'address1', 'city', 'state', 'country', 'zip_code']].reset_index(drop=True)
+  ```
+id   | name      |  address1          | city   |  state  |  country | zip_code
+-----| --------- |  ----------------  | -------| ------- | -------- | -------
+0    | Starbucks | 515 Westlake Ave N | Seattle | WA  | US |  98109
+1    | Starbucks |  442 Terry Avenue N |  Seattle | WA  | US  | 98109
+...  | .......   |  .......            |  ......  | ..  |  .. | ....
+126  | Starbucks | 17801 International Blvd | Seattle | WA | US | 98158
 
-<img src=".assets/Yelp_single_resp_json.png" style= "width: 600px; height:50px;"/>
+</details>
+<details>
+  <summary>What are the ratings for a list of resturants?</summary>
+  
+  ```python
+  from dataprep.connector import connect
+  import pandas as pd
+  import asyncio
+  # You can get ”yelp_access_token“ by following https://www.yelp.com/developers/documentation/v3/authentication
+  conn_yelp = connect("yelp", _auth={"access_token":yelp_access_token}, _concurrency = 5)
 
-Once the user sets up the appropriate responses in the Json file then the user can start up the data connection. 
+  names = ["Miku", "Boulevard", "NOTCH 8", "Chambar", "VIJ’S", "Fable", "Kirin Restaurant", "Cafe Medina", \
+   "Ask for Luigi", "Savio Volpe", "Nicli Pizzeria", "Annalena", "Edible Canada", "Nuba", "The Acorn", \
+   "Lee's Donuts", "Le Crocodile", "Cioppinos", "Six Acres", "St. Lawrence", "Hokkaido Santouka Ramen"]
 
-<img src=".assets/Data_connector.png" style= "width: 600px; height:260px;"/>
+  query_list = [conn_yelp.query("businesses", term=name, location = "Vancouver", _count=1) for name in names]
+  results = asyncio.gather(*query_list)
+  df = pd.concat(await results)
+  df[["name", "rating", "city"]].reset_index(drop=True)
+  ```
+  ID   | Name                            | Rating  | City 
+------ | ------------------------------- | ------- | --------
+  0    | Miku                            | 4.5     | Vancouver 
+  1    | Boulevard Kitchen & Oyster Bar  | 4.0     | Vancouver  
+  ...  |      ...                        |   ...   |  ...  
+  20   | Hokkaido Ramen Santouka         | 4.0     | Vancouver
+</details>
 
-# That's all for now
 
-Please visit the other tutorials that are available if you are interested in setting up a data connector.
+
+### Finance
+
+#### [Finnhub](./finnhub) -- Collect Financial, Market, Economic Data
+
+
+
+
+### Geocoding
+
+#### [MapQuest](./mapquest) -- Collect Driving Directions, Maps, Traffic Data
+
+
+
+
+### Lifestyle
+
+#### [Spoonacular](./spoonacular) -- Collect Recipe, Food, and Nutritional Information Data
+
+
+
+
+
+### Music
+
+#### [MusixMatch](./musicmatch) -- Collect Music Lyrics Data
+
+
+
+#### [Spotify](./spotify) -- Collect Albums, Artists, and Tracks Metadata
+
+
+
+
+
+### News
+
+
+#### [Guardian](./guardian) -- Collect Guardian News Data 
+
+#### [Times](./times) -- Collect New York Times Data
+
+
+
+
+
+### Science
+
+#### [DBLP](./dblp) -- Collect Computer Science Publication Data
+
+<details>
+  <summary>Who wrote this paper?</summary>
+  
+  ```python
+  from dataprep.connector import connect
+  conn_dblp = connect("dblp")
+  df = await conn_dblp.query("publication", q = "Scikit-learn: Machine learning in Python", _count = 1)
+  df[["title", "authors", "year"]]
+  ```
+id | title | authors | year
+  ---  | ----- | -----   | ----
+ 0     |Scikit-learn - Machine Learning in Python.| [Fabian Pedregosa, Gaël Varoquaux, Alexandre G... | 2011
+ 
+  </details>
+  
+ <details>
+  <summary>How to fetch all publications of Andrew Y. Ng?</summary>
+  
+  ```python
+  from dataprep.connector import connect
+
+  conn_dblp = connect("dblp", _concurrency = 5)
+  df = await conn_dblp.query("publication", author = "Andrew Y. Ng",  _count = 2000)
+  df[["title", "authors", "year"]].reset_index(drop=True)
+  ```
+
+
+ id | title | authors | year
+  ---  | ----- | -----   | ----
+  0 | On Local Rewards and Scaling Distributed Reinf... | [J. Andrew Bagnell, Andrew Y. Ng] | 2005
+   ...   | ...   | ... | ...
+   242 | An Experimental and Theoretical Comparison .... |  [Michael J. Kearns, Yishay Mansour, Andrew Y. Ng,.... | 1992
+  </details>
+  
+<details>
+  <summary>How to fetch all publications of NeurIPS 2020?</summary>
+  
+  ```python
+  from dataprep.connector import connect
+
+  conn_dblp = connect("dblp", _concurrenncy = 5)
+  df = await conn_dblp.query("publication", q = "NeurIPS 2020", _count = 5000)
+
+  # filter non-neurips-2020 papers
+  mask = df.venue.apply(lambda x: 'NeurIPS' in x)
+  df = df[mask]
+  df = df[(df['year'] == '2020')]
+  df = df[["title", "venue", "year"]].reset_index(drop=True)
+  ```
+
+  id | title | authors | year
+  ---  | ----- | -----   | ----
+ 0     |Towards More Practical Adversarial Attacks on ... | [NeurIPS] | 2020
+ ...   | ...   | ... | ...
+ 1899  | Triple descent and the two kinds of overfittin...  | [NeurIPS] | 2020
+  </details>
+  
+
+
+### Shopping
+
+
+#### [Etsy](./etsy) -- Colect Handmade Marketplace Data.
+
+
+
+
+
+### Social
+
+#### [Twitch](./twitch) -- Colect Twitch Streams and Channels Information
+
+#### [Twitter](./twitter) -- Colect Tweets Information
+
+
+
+
+### Video
+
+
+#### [Youtube](./youtube) -- Colect Youtube's Content MetaData.
+
+
+
+
+### Weather
+
+
+#### [OpenWeatherMap](openweathermap) -- Colect Current and Historical Weather Data
+
+
+**[⬆ Back to Index](#index)**
+
+
 
 ## Contributors ✨
 
@@ -117,5 +282,3 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- markdownlint-enable -->
 <!-- prettier-ignore-end -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
-
-This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
